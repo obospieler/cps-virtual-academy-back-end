@@ -8,6 +8,10 @@ import userRoutes from './routes/user.routes';
 import hubroutes from './routes/hub.routes';
 import errorMiddleware from './middleware/error.middleware';
 import swaggerDocs from './config/swagger';
+import sectionroutes from './routes/section.routes';
+import studentroutes from './routes/student.routes';
+import sectionPartnerSchoolroutes from './routes/sectionPartnerSchool.routes';
+import partnerschoolroutes from './routes/partnerSchool.routes';
 
 // Load environment variables
 config();
@@ -32,6 +36,10 @@ swaggerDocs(app, PORT);
 // Routes
 app.use('/api/users', userRoutes);
 app.use('/api/hubs', hubroutes);
+app.use('/api/sections', sectionroutes);
+app.use('/api/students', studentroutes);
+app.use('/api/section-partner-schools', sectionPartnerSchoolroutes);
+app.use('/api/partner-schools', partnerschoolroutes);
 
 // Health check endpoint
 app.get('/health', (req: Request, res: Response) => {

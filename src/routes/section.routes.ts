@@ -14,7 +14,7 @@ const router = Router();
  *         - ID
  *         - CreatedBy
  *         - ModifiedBy
- *         - id_hub
+ *         - hub
  *         - daysWeek
  *         - time_start
  *         - time_end
@@ -40,7 +40,7 @@ const router = Router();
  *         ModifiedBy:
  *           type: string
  *           description: Who last modified the section
- *         id_hub:
+ *         hub:
  *           type: string
  *           description: The hub ID this section belongs to
  *         daysWeek:
@@ -76,7 +76,7 @@ const router = Router();
 
 /**
  * @swagger
- * /api/sections:
+ * /sections:
  *   get:
  *     summary: Get all sections with pagination
  *     tags: [Sections]
@@ -119,7 +119,7 @@ router.get('/', SectionController.getAllSections as RequestHandler);
 
 /**
  * @swagger
- * /api/sections:
+ * /sections:
  *   post:
  *     summary: Create a new section
  *     tags: [Sections]
@@ -139,7 +139,7 @@ router.post('/', SectionController.createSection as RequestHandler);
 
 /**
  * @swagger
- * /api/sections/{id}:
+ * /sections/{id}:
  *   get:
  *     summary: Get a section by ID
  *     tags: [Sections]
@@ -164,7 +164,7 @@ router.get('/:id', SectionController.getSectionById as RequestHandler);
 
 /**
  * @swagger
- * /api/sections/filemaker/{id}:
+ * /sections/filemaker/{id}:
  *   get:
  *     summary: Get a section by Filemaker ID
  *     tags: [Sections]
@@ -189,7 +189,7 @@ router.get('/filemaker/:id', SectionController.getSectionByFilemakerId as Reques
 
 /**
  * @swagger
- * /api/sections/{id}:
+ * /sections/{id}:
  *   patch:
  *     summary: Update a section
  *     tags: [Sections]
@@ -216,7 +216,7 @@ router.patch('/:id', SectionController.updateSection as RequestHandler);
 
 /**
  * @swagger
- * /api/sections/{id}:
+ * /sections/{id}:
  *   delete:
  *     summary: Delete a section
  *     tags: [Sections]
@@ -237,7 +237,7 @@ router.delete('/:id', SectionController.deleteSection as RequestHandler);
 
 /**
  * @swagger
- * /api/sections/hub/{hubId}:
+ * /sections/hub/{hubId}:
  *   get:
  *     summary: Get all sections for a hub
  *     tags: [Sections]
@@ -262,7 +262,7 @@ router.get('/hub/:hubId', SectionController.getSectionsByHub as RequestHandler);
 
 /**
  * @swagger
- * /api/sections/{id}/capacity:
+ * /sections/{id}/capacity:
  *   get:
  *     summary: Check section capacity
  *     tags: [Sections]
@@ -300,7 +300,7 @@ router.get('/:id/capacity', SectionController.checkSectionCapacity as RequestHan
 
 /**
  * @swagger
- * /api/sections/{id}/enrollment:
+ * /sections/{id}/enrollment:
  *   patch:
  *     summary: Update section enrollment
  *     tags: [Sections]

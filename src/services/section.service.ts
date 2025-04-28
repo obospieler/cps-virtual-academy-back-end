@@ -34,6 +34,7 @@ export class SectionService {
         try {
             const skip = (page - 1) * limit;
             const sections = await Section.find()
+                .populate('hub')
                 .skip(skip)
                 .limit(limit)
                 .sort({ CreationTimestamp: -1 });
@@ -64,7 +65,7 @@ export class SectionService {
             if (!Types.ObjectId.isValid(id)) {
                 throw new Error('Invalid section ID');
             }
-            return await Section.findById(id);
+            return await Section.findById(id).populate('hub');
         } catch (error) {
             const err = error as Error;
             throw new Error(`Error fetching section: ${err.message}`);
@@ -78,7 +79,7 @@ export class SectionService {
      */
     static async getSectionByFilemakerId(filemakerId: string): Promise<ISection | null> {
         try {
-            return await Section.findOne({ ID: filemakerId });
+            return await Section.findOne({ ID: filemakerId }).populate('hub');
         } catch (error) {
             const err = error as Error;
             throw new Error(`Error fetching section: ${err.message}`);
@@ -100,11 +101,12 @@ export class SectionService {
             // Remove fields that shouldn't be updated
             const { _id, ID, CreationTimestamp, ...cleanUpdateData } = updateData;
 
+            // Update and return populated document in one go
             const section = await Section.findByIdAndUpdate(
                 id,
                 { $set: cleanUpdateData },
                 { new: true, runValidators: true }
-            );
+            ).populate('hub');
 
             if (!section) {
                 throw new Error('Section not found');
@@ -128,11 +130,13 @@ export class SectionService {
                 throw new Error('Invalid section ID');
             }
 
-            const section = await Section.findByIdAndDelete(id);
+            // Get populated document before deletion
+            const section = await Section.findById(id).populate('hub');
             if (!section) {
                 throw new Error('Section not found');
             }
-
+            
+            await Section.findByIdAndDelete(id);
             return section;
         } catch (error) {
             const err = error as Error;
@@ -147,7 +151,9 @@ export class SectionService {
      */
     static async getSectionsByHub(hubId: string): Promise<ISection[]> {
         try {
-            return await Section.find({ id_hub: hubId }).sort({ time_start: 1 });
+            return await Section.find({ id_hub: hubId })
+                .populate('hub')
+                .sort({ time_start: 1 });
         } catch (error) {
             const err = error as Error;
             throw new Error(`Error fetching sections by hub: ${err.message}`);
@@ -165,7 +171,7 @@ export class SectionService {
                 throw new Error('Invalid section ID');
             }
 
-            const section = await Section.findById(id);
+            const section = await Section.findById(id).populate('hub');
             if (!section) {
                 throw new Error('Section not found');
             }
@@ -178,7 +184,8 @@ export class SectionService {
                 remainingMax: sectionDoc.capacity_remaining_max_c,
                 currentEnrollment: sectionDoc.enrolled_c,
                 targetCapacity: sectionDoc.capacity_target,
-                maxCapacity: sectionDoc.capacity_max
+                maxCapacity: sectionDoc.capacity_max,
+                hub: sectionDoc.hub
             };
         } catch (error) {
             const err = error as Error;
@@ -216,10 +223,13 @@ export class SectionService {
             section.capacity_remaining_target_c = section.capacity_target - newEnrollment;
             section.capacity_remaining_max_c = section.capacity_max - newEnrollment;
 
-            return await section.save();
+            await section.save();
+            
+            // Return populated document after save
+            return await Section.findById(id).populate('hub');
         } catch (error) {
             const err = error as Error;
             throw new Error(`Error updating enrollment: ${err.message}`);
         }
     }
-} 
+}

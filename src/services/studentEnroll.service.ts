@@ -14,13 +14,23 @@ export class StudentEnrollService {
     }
 
     static async getStudentEnrollById(id: string): Promise<IStudentEnroll | null> {
-        return await StudentEnroll.findOne({ ID: id });
+        return await StudentEnroll.findOne({ ID: id })
+            .populate('hub')
+            .populate('partnerSchool')
+            .populate('section')
+            .populate('student');
     }
 
     static async getAllStudentEnrolls(page: number = 1, limit: number = 10): Promise<{ enrollments: IStudentEnroll[]; total: number }> {
         const skip = (page - 1) * limit;
         const [enrollments, total] = await Promise.all([
-            StudentEnroll.find().skip(skip).limit(limit),
+            StudentEnroll.find()
+                .skip(skip)
+                .limit(limit)
+                .populate('hub')
+                .populate('partnerSchool')
+                .populate('section')
+                .populate('student'),
             StudentEnroll.countDocuments()
         ]);
         return { enrollments, total };
@@ -32,7 +42,11 @@ export class StudentEnrollService {
                 { ID: id },
                 { $set: updateData },
                 { new: true }
-            );
+            )
+            .populate('hub')
+            .populate('partnerSchool')
+            .populate('section')
+            .populate('student');
         } catch (error: any) {
             if (error.code === 11000) {
                 throw new Error('Student enrollment with this ID or recordId already exists');
@@ -46,15 +60,27 @@ export class StudentEnrollService {
     }
 
     static async getEnrollmentsByStudent(studentId: string): Promise<IStudentEnroll[]> {
-        return await StudentEnroll.find({ id_student: studentId });
+        return await StudentEnroll.find({ id_student: studentId })
+            .populate('hub')
+            .populate('partnerSchool')
+            .populate('section')
+            .populate('student');
     }
 
     static async getEnrollmentsBySection(sectionId: string): Promise<IStudentEnroll[]> {
-        return await StudentEnroll.find({ id_section: sectionId });
+        return await StudentEnroll.find({ id_section: sectionId })
+            .populate('hub')
+            .populate('partnerSchool')
+            .populate('section')
+            .populate('student');
     }
 
     static async getEnrollmentsByPartnerSchool(partnerSchoolId: string): Promise<IStudentEnroll[]> {
-        return await StudentEnroll.find({ id_partnerSchool: partnerSchoolId });
+        return await StudentEnroll.find({ id_partnerSchool: partnerSchoolId })
+            .populate('hub')
+            .populate('partnerSchool')
+            .populate('section')
+            .populate('student');
     }
 
     static async updateEnrollmentStatus(id: string, status: string, reason?: string): Promise<IStudentEnroll | null> {
@@ -66,6 +92,10 @@ export class StudentEnrollService {
             { ID: id },
             { $set: updateData },
             { new: true }
-        );
+        )
+        .populate('hub')
+        .populate('partnerSchool')
+        .populate('section')
+        .populate('student');
     }
 } 

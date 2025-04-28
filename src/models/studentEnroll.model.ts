@@ -1,4 +1,8 @@
 import { Schema, model, Document, Types } from 'mongoose';
+import { IHub } from './hub.model';
+import { IPartnerSchool } from './partnerSchool.model';
+import { ISection } from './section.model';
+import { IStudent } from './student.model';
 
 export interface IStudentEnroll extends Document {
     ID: string;
@@ -6,10 +10,10 @@ export interface IStudentEnroll extends Document {
     CreatedBy: string;
     ModificationTimestamp: string;
     ModifiedBy: string;
-    id_hub: string;
-    id_partnerSchool: string;
-    id_section: string;
-    id_student: string;
+    hub: string | IHub;
+    partnerSchool: string | IPartnerSchool;
+    section: string | ISection;
+    student: string | IStudent;
     status_roster: string;
     removeReason: string;
     removeReason_other: string;
@@ -32,10 +36,26 @@ const studentEnrollSchema = new Schema<IStudentEnroll>({
     CreatedBy: { type: String, required: true },
     ModificationTimestamp: { type: String, required: true },
     ModifiedBy: { type: String, required: true },
-    id_hub: { type: String, required: true },
-    id_partnerSchool: { type: String, required: true },
-    id_section: { type: String, required: true },
-    id_student: { type: String, required: true },
+    hub: { 
+        type: String, 
+        ref: 'Hub',
+        required: true 
+    },
+    partnerSchool: { 
+        type: String, 
+        ref: 'PartnerSchool',
+        required: true 
+    },
+    section: { 
+        type: String, 
+        ref: 'Section',
+        required: true 
+    },
+    student: { 
+        type: String, 
+        ref: 'Student',
+        required: true 
+    },
     status_roster: { type: String, default: 'Not Enrolled' },
     removeReason: { type: String, default: '' },
     removeReason_other: { type: String, default: '' },

@@ -1,4 +1,5 @@
 import { Schema, model, Document, Types } from 'mongoose';
+import { IHub } from './hub.model';
 
 export interface ISection extends Document {
     _id: Types.ObjectId;
@@ -7,7 +8,7 @@ export interface ISection extends Document {
     CreatedBy: string;
     ModificationTimestamp: Date;
     ModifiedBy: string;
-    id_hub: string;
+    hub: string | IHub;
     daysWeek: string;
     time_start: string;
     time_end: string;
@@ -49,8 +50,9 @@ const sectionSchema = new Schema<ISection>({
         type: String,
         required: true
     },
-    id_hub: {
+    hub: {
         type: String,
+        ref: 'Hub',
         required: true
     },
     daysWeek: {
@@ -130,6 +132,7 @@ const sectionSchema = new Schema<ISection>({
 });
 
 sectionSchema.index({ recordId: 1 }, { unique: true });
+sectionSchema.index({ ID: 1 }, { unique: true });
 
 // Add pre-save middleware to update ModificationTimestamp
 sectionSchema.pre('save', function(next) {

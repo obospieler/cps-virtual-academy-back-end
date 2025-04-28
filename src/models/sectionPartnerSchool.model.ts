@@ -10,8 +10,8 @@ export interface ISectionPartnerSchool extends Document {
     CreatedBy: string;
     ModificationTimestamp: string;
     ModifiedBy: string;
-    id_section: Types.ObjectId | ISection;
-    id_partnerSchool: Types.ObjectId | IPartnerSchool;
+    id_section: string | ISection;
+    id_partnerSchool: string | IPartnerSchool;
     numEnrolled_c: number;
     num_roster_c: number;
     flag_removeWeb: string;
@@ -53,13 +53,13 @@ const sectionPartnerSchoolSchema = new Schema<ISectionPartnerSchool>({
         required: true
     },
     id_section: {
-        type: Schema.Types.ObjectId,
+        type: String,
         ref: 'Section',
         required: true,
         index: true
     },
     id_partnerSchool: {
-        type: Schema.Types.ObjectId,
+        type: String,
         ref: 'PartnerSchool',
         required: true,
         index: true
