@@ -20,14 +20,11 @@ const partnerSchoolSchema = new Schema<IPartnerSchool>({
     },
     ID: {
         type: String,
-        required: true,
-        unique: true
+        required: true
     },
     recordId: {
         type: String,
-        required: false,
-        unique: true,
-        index: true
+        required: false
     },
     xx_email_auth_user: {
         type: String,
@@ -62,7 +59,7 @@ const partnerSchoolSchema = new Schema<IPartnerSchool>({
 });
 
 // Create index on ID field for faster lookups
-partnerSchoolSchema.index({ ID: 1 });
+partnerSchoolSchema.index({ ID: 1 }, { unique: true });
 partnerSchoolSchema.index({ recordId: 1 }, { unique: true });
 
 // Create index on schoolName for faster searches

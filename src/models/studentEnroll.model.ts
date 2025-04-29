@@ -10,10 +10,10 @@ export interface IStudentEnroll extends Document {
     CreatedBy: string;
     ModificationTimestamp: string;
     ModifiedBy: string;
-    hub: string | IHub;
-    partnerSchool: string | IPartnerSchool;
-    section: string | ISection;
-    student: string | IStudent;
+    id_hub: string;
+    id_partnerSchool: string;
+    id_section: string;
+    id_student: string;
     status_roster: string;
     removeReason: string;
     removeReason_other: string;
@@ -28,30 +28,34 @@ export interface IStudentEnroll extends Document {
     id_sectionMoveWeb: string;
     flag_moveWeb: string;
     recordId: string;
+    hub?: IHub;
+    partnerSchool?: IPartnerSchool;
+    section?: ISection;
+    student?: IStudent;
 }
 
 const studentEnrollSchema = new Schema<IStudentEnroll>({
-    ID: { type: String, required: true, unique: true },
+    ID: { type: String, required: true},
     CreationTimestamp: { type: String, required: true },
     CreatedBy: { type: String, required: true },
     ModificationTimestamp: { type: String, required: true },
     ModifiedBy: { type: String, required: true },
-    hub: { 
+    id_hub: { 
         type: String, 
         ref: 'Hub',
         required: true 
     },
-    partnerSchool: { 
+    id_partnerSchool: { 
         type: String, 
         ref: 'PartnerSchool',
         required: true 
     },
-    section: { 
+    id_section: { 
         type: String, 
         ref: 'Section',
         required: true 
     },
-    student: { 
+    id_student: { 
         type: String, 
         ref: 'Student',
         required: true 
@@ -69,11 +73,44 @@ const studentEnrollSchema = new Schema<IStudentEnroll>({
     ModifiedByWeb: { type: String, default: '' },
     id_sectionMoveWeb: { type: String, default: '' },
     flag_moveWeb: { type: String, default: '' },
-    recordId: { type: String, unique: true, index: true, required: false }
+    recordId: { type: String, required: false }
 }, {
     timestamps: false,
     versionKey: false
 });
+
+// Set up the virtual populate with the name "Hub" (capital H)
+studentEnrollSchema.virtual('hub', {
+    ref: 'Hub',
+    localField: 'id_hub',
+    foreignField: 'ID',
+    justOne: true
+}); 
+
+// Set up the virtual populate with the name "PartnerSchool" (capital P)    
+studentEnrollSchema.virtual('partnerSchool', {
+    ref: 'PartnerSchool',
+    localField: 'id_partnerSchool',
+    foreignField: 'ID',
+    justOne: true
+});
+
+// Set up the virtual populate with the name "Section" (capital S)
+studentEnrollSchema.virtual('section', {
+    ref: 'Section',
+    localField: 'id_section',
+    foreignField: 'ID',
+    justOne: true
+});
+
+// Set up the virtual populate with the name "Student" (capital S)
+studentEnrollSchema.virtual('student', {
+    ref: 'Student',
+    localField: 'id_student',
+    foreignField: 'ID',
+    justOne: true
+});
+
 
 studentEnrollSchema.index({ ID: 1 }, { unique: true });
 studentEnrollSchema.index({ recordId: 1 }, { unique: true });

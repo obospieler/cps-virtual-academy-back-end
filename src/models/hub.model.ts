@@ -24,14 +24,11 @@ const hubSchema = new Schema<IHub>({
     },
     ID: {
         type: String,
-        required: true,
-        unique: true
+        required: true
     },
     recordId: {
         type: String,
-        required: false,
-        unique: true,
-        index: true
+        required: false
     },
     CreationTimestamp: {
         type: Date,
@@ -83,7 +80,7 @@ const hubSchema = new Schema<IHub>({
 });
 
 // Create index on ID field for faster lookups
-hubSchema.index({ ID: 1 });
+hubSchema.index({ ID: 1 }, { unique: true });
 hubSchema.index({ recordId: 1 }, { unique: true });
 
 export const Hub = model<IHub>('Hub', hubSchema); 

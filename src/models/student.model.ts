@@ -36,8 +36,8 @@ export interface IStudent extends Document {
 
 const studentSchema = new Schema<IStudent>({
     _id: { type: Schema.Types.ObjectId, auto: true },
-    ID: { type: String, required: true, unique: true },
-    recordId: { type: String, unique: true, index: true, required: false },
+    ID: { type: String, required: true },
+    recordId: { type: String, required: false },
     id_parsch: { type: String, default: '' },
     name_first: { type: String, required: true },
     name_last: { type: String, required: true },
@@ -46,7 +46,7 @@ const studentSchema = new Schema<IStudent>({
     GPA: { type: String, default: '' },
     grade_current: { type: String, default: '' },
     flag_alg_complete: { type: String, default: '' },
-    CPSID: { type: String, required: true, unique: true },
+    CPSID: { type: String, required: true },
     name_full: { type: String, required: true },
     attendance: { type: String, default: '' },
     GPA_waiver_flag: { type: String, default: '' },

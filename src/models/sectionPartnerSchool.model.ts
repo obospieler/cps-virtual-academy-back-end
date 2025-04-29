@@ -10,13 +10,15 @@ export interface ISectionPartnerSchool extends Document {
     CreatedBy: string;
     ModificationTimestamp: string;
     ModifiedBy: string;
-    id_section: string | ISection;
-    id_partnerSchool: string | IPartnerSchool;
+    id_section: string;
+    id_partnerSchool: string;
     numEnrolled_c: number;
     num_roster_c: number;
     flag_removeWeb: string;
     flag_addWeb: string;
     ModifiedByWeb: string;
+    section?: ISection;
+    partnerSchool?: IPartnerSchool;
 }
 
 const sectionPartnerSchoolSchema = new Schema<ISectionPartnerSchool>({
@@ -26,15 +28,11 @@ const sectionPartnerSchoolSchema = new Schema<ISectionPartnerSchool>({
     },
     ID: {
         type: String,
-        required: true,
-        unique: true,
-        index: true
+        required: true
     },
     recordId: {
         type: String,
-        required: false,
-        unique: true,
-        index: true
+        required: false
     },
     CreationTimestamp: {
         type: String,
@@ -55,14 +53,12 @@ const sectionPartnerSchoolSchema = new Schema<ISectionPartnerSchool>({
     id_section: {
         type: String,
         ref: 'Section',
-        required: true,
-        index: true
+        required: true
     },
     id_partnerSchool: {
         type: String,
         ref: 'PartnerSchool',
-        required: true,
-        index: true
+        required: true
     },
     numEnrolled_c: {
         type: Number,
@@ -103,7 +99,7 @@ sectionPartnerSchoolSchema.index({ recordId: 1 }, { unique: true });
 sectionPartnerSchoolSchema.virtual('section', {
     ref: 'Section',
     localField: 'id_section',
-    foreignField: '_id',
+    foreignField: 'ID',
     justOne: true
 });
 
@@ -111,7 +107,7 @@ sectionPartnerSchoolSchema.virtual('section', {
 sectionPartnerSchoolSchema.virtual('partnerSchool', {
     ref: 'PartnerSchool',
     localField: 'id_partnerSchool',
-    foreignField: '_id',
+    foreignField: 'ID',
     justOne: true
 });
 

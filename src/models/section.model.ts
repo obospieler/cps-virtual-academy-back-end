@@ -8,7 +8,7 @@ export interface ISection extends Document {
     CreatedBy: string;
     ModificationTimestamp: Date;
     ModifiedBy: string;
-    hub: string | IHub;
+    id_hub: string;
     daysWeek: string;
     time_start: string;
     time_end: string;
@@ -20,6 +20,7 @@ export interface ISection extends Document {
     capacity_remaining_max_c: number;
     ModifiedByWeb: string;
     recordId?: string;
+    hub?: IHub;
 }
 
 const sectionSchema = new Schema<ISection>({
@@ -29,8 +30,7 @@ const sectionSchema = new Schema<ISection>({
     },
     ID: {
         type: String,
-        required: true,
-        unique: true
+        required: true
     },
     CreationTimestamp: {
         type: Date,
@@ -50,7 +50,7 @@ const sectionSchema = new Schema<ISection>({
         type: String,
         required: true
     },
-    hub: {
+    id_hub: {
         type: String,
         ref: 'Hub',
         required: true
@@ -122,13 +122,19 @@ const sectionSchema = new Schema<ISection>({
     },
     recordId: {
         type: String,
-        unique: true,
-        index: true,
         required: false
     }
 }, {
     timestamps: true,
     versionKey: false
+});
+
+// Set up the virtual populate with the name "Hub" (capital H)
+sectionSchema.virtual('hub', {
+    ref: 'Hub',
+    localField: 'id_hub',
+    foreignField: 'ID',
+    justOne: true
 });
 
 sectionSchema.index({ recordId: 1 }, { unique: true });
