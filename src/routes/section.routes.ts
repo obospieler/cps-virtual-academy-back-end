@@ -14,7 +14,7 @@ const router = Router();
  *         - ID
  *         - CreatedBy
  *         - ModifiedBy
- *         - hub
+ *         - id_hub
  *         - daysWeek
  *         - time_start
  *         - time_end
@@ -23,6 +23,9 @@ const router = Router();
  *         - capacity_max
  *         - enrolled_c
  *       properties:
+ *         _id:
+ *           type: string
+ *           description: The MongoDB ObjectId
  *         ID:
  *           type: string
  *           description: The custom ID of the section
@@ -40,7 +43,7 @@ const router = Router();
  *         ModifiedBy:
  *           type: string
  *           description: Who last modified the section
- *         hub:
+ *         id_hub:
  *           type: string
  *           description: The hub ID this section belongs to
  *         daysWeek:
@@ -59,7 +62,7 @@ const router = Router();
  *           description: The target capacity
  *         capacity_overPercent:
  *           type: number
- *           description: The over capacity percentage
+ *           description: The over capacity percentage (0-1)
  *         capacity_max:
  *           type: number
  *           description: The maximum capacity
@@ -72,6 +75,12 @@ const router = Router();
  *         capacity_remaining_max_c:
  *           type: number
  *           description: Remaining maximum capacity
+ *         ModifiedByWeb:
+ *           type: string
+ *           description: Web user who last modified the section
+ *         recordId:
+ *           type: string
+ *           description: Optional record ID
  */
 
 /**
