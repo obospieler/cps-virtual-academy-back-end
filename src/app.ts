@@ -12,6 +12,7 @@ import sectionroutes from './routes/section.routes';
 import studentroutes from './routes/student.routes';
 import sectionPartnerSchoolroutes from './routes/sectionPartnerSchool.routes';
 import partnerschoolroutes from './routes/partnerSchool.routes';
+import syncRoutes from './routes/sync.routes';
 
 // Load environment variables
 config();
@@ -40,6 +41,7 @@ app.use('/api/sections', sectionroutes);
 app.use('/api/students', studentroutes);
 app.use('/api/section-partner-schools', sectionPartnerSchoolroutes);
 app.use('/api/partner-schools', partnerschoolroutes);
+app.use('/api/sync', syncRoutes);
 
 // Health check endpoint
 app.get('/health', (req: Request, res: Response) => {
