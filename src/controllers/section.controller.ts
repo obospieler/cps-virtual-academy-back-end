@@ -144,4 +144,16 @@ export class SectionController {
             res.status(400).json(ResponseUtil.error(err.message));
         }
     }
+
+    /**
+     * Sync sections
+     */
+    static async syncSections(req: Request, res: Response) {
+        const { date, purge } = req.body;
+        const result = await SectionService.syncSections(date, purge);
+        res.json(ResponseUtil.success({
+            totalRecordsFound: result.totalRecords,
+            message: "Sections are being synced in background"
+        }));
+    }
 } 

@@ -3,6 +3,8 @@ import { HubController } from '../controllers/hub.controller';
 import { SectionController } from '../controllers/section.controller';
 import { PartnerSchoolController } from '../controllers/partnerSchool.controller';
 import { SectionPartnerSchoolController } from '../controllers/sectionPartnerSchool.controller';
+import { StudentEnrollController } from '../controllers/studentEnroll.controller';
+import { StudentController } from '../controllers/student.controller';
 
 /**
  * @swagger
@@ -95,7 +97,7 @@ router.post('/hubs', HubController.syncHubs as RequestHandler);
  *       500:
  *         description: Server error
  */
-// router.post('/sections', SectionController.syncSections as unknown as RequestHandler);
+router.post('/sections', SectionController.syncSections as RequestHandler);
 
 /**
  * @swagger
@@ -122,7 +124,7 @@ router.post('/hubs', HubController.syncHubs as RequestHandler);
  *       500:
  *         description: Server error
  */
-// router.post('/partner-schools', PartnerSchoolController.syncPartnerSchools as unknown as RequestHandler);
+router.post('/partner-schools', PartnerSchoolController.syncPartnerSchools as unknown as RequestHandler);
 
 /**
  * @swagger
@@ -149,7 +151,63 @@ router.post('/hubs', HubController.syncHubs as RequestHandler);
  *       500:
  *         description: Server error
  */
-// router.post('/section-partner-schools', SectionPartnerSchoolController.syncSectionPartnerSchools as unknown as RequestHandler);
+router.post('/section-partner-schools', SectionPartnerSchoolController.syncSectionPartnerSchools as RequestHandler);
+
+/**
+ * @swagger
+ * /sync/student-enrolled:
+ *   post:
+ *     summary: Sync section-partner school relationships from FileMaker to MongoDB
+ *     tags: [Sync]
+ *     requestBody:
+ *       required: false
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/SyncRequest'
+ *           example:
+ *             date: "01012025"
+ *             purge: false
+ *     responses:
+ *       200:
+ *         description: Sync process started successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/SyncResponse'
+ *       500:
+ *         description: Server error
+ */
+router.post('/student-enrolled', StudentEnrollController.syncStudentEnrolled as RequestHandler);
+
+
+/**
+ * @swagger
+ * /sync/student:
+ *   post:
+ *     summary: Sync section-partner school relationships from FileMaker to MongoDB
+ *     tags: [Sync]
+ *     requestBody:
+ *       required: false
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/SyncRequest'
+ *           example:
+ *             date: "01012025"
+ *             purge: false
+ *     responses:
+ *       200:
+ *         description: Sync process started successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/SyncResponse'
+ *       500:
+ *         description: Server error
+ */
+router.post('/student', StudentController.syncStudent as RequestHandler);
+
 
 export default router;
 

@@ -1,5 +1,12 @@
+import moment from 'moment-timezone';
 import { StudentEnroll, IStudentEnroll } from '../models/studentEnroll.model';
 import { ResponseUtil } from '../utils/response.util';
+import FileMakerService from './filemaker.service';
+import { IStudentEnrolledFilemaker, StudentEnrolledFileMakerResponse } from '../types/filemaker.types';
+import { IHub } from '../models/hub.model';
+import { IPartnerSchool } from '../models/partnerSchool.model';
+import { ISection } from '../models/section.model';
+import { SectionService } from './section.service';
 
 interface MongoError extends Error {
     code?: number;
@@ -174,4 +181,89 @@ export class StudentEnrollService {
         .populate('student')
         .sort({ CreationTimestamp: -1 });
     }
+
+    /**
+   * 
+   * @param date 
+   * @param purge 
+   * @returns 
+   */
+  static async syncStudentEnrolled(
+    date: string | null = null,
+    purge = false
+  ): Promise<{ totalRecords: number }> {
+    try {
+      const layoutName = "intg_studentEnroll";
+      const query = [];
+      if (date) {
+        const formattedDate = moment(date, "MMDDYYYY").format("MM/DD/YYYY");
+        query.push({ ModificationTimestamp: `≥${formattedDate}` });
+      }
+      const client = new FileMakerService();
+      const responseCount: StudentEnrolledFileMakerResponse = await client.find(layoutName, query, { limit: 1 });
+      console.log("responseCount: ", responseCount?.data?.[0].fieldData);
+      const totalRecords = responseCount?.dataInfo?.foundCount || 0;
+
+      // Start background processing
+      (async () => {
+        try {
+          const chunkSize = 2000;
+          const allStudentEnrolled: IStudentEnrolledFilemaker[] = [];
+
+          for (let offset = 1; offset <= totalRecords; offset += chunkSize) {
+            const result: StudentEnrolledFileMakerResponse = await client.find(layoutName, query, {
+              offset,
+              limit: chunkSize,
+            });
+            allStudentEnrolled.push(...result?.data || []);
+          }
+
+          console.log("Total studentEnrolled to sync: ", allStudentEnrolled.length);
+          if (purge) {
+            await StudentEnroll.deleteMany({});
+            console.log("studentEnrolled collection purged");
+          }
+          const studentEnrolledData = await Promise.all(
+            allStudentEnrolled.map(async (studentEnrolled: IStudentEnrolledFilemaker) => {
+
+              const studentEnrollledDoc = new StudentEnroll({
+                ID: studentEnrolled.fieldData.ID,
+                CreationTimestamp: studentEnrolled.fieldData.CreationTimestamp,
+                CreatedBy: studentEnrolled.fieldData.CreatedBy,
+                ModificationTimestamp: studentEnrolled.fieldData.ModificationTimestamp,
+                ModifiedBy: studentEnrolled.fieldData.ModifiedBy,
+                id_hub: studentEnrolled.fieldData.id_hub,
+                id_section: studentEnrolled.fieldData.id_section,
+                id_partnerSchool: studentEnrolled.fieldData.id_partnerSchool,
+                id_student: studentEnrolled.fieldData.ID,
+                status_roster: 'Enrolled',
+                removeReason: '',
+                removeReason_other: '',
+                removeReason_additionalContext: '',
+                flag_enrolled: 1,
+                flag_removeWeb: studentEnrolled.fieldData.flag_removeWeb,
+                flag_addWeb: studentEnrolled.fieldData.flag_addWeb,
+                temp_firstName: studentEnrolled.fieldData.temp_firstName || '',
+                temp_lastName: studentEnrolled.fieldData.temp_lastName || '',
+                temp_CPSID: studentEnrolled.fieldData.temp_CPSID || '',
+                ModifiedByWeb: studentEnrolled.fieldData.ModifiedByWeb,
+                id_sectionMoveWeb: '',
+                flag_moveWeb: '',
+                recordId: studentEnrolled.recordId
+              });
+              return await studentEnrollledDoc.save();
+            })
+          );
+          console.log("studentEnrolled synced: ", studentEnrolledData.length);
+        } catch (error) {
+          console.error("Background sync error:", error);
+        }
+      })();
+
+      return { totalRecords };
+    } catch (error) {
+      console.error("Sync error:", error);
+      throw error;
+    }
+  }
 } 

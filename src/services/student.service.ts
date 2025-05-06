@@ -1,4 +1,7 @@
+import moment from 'moment-timezone';
 import { Student, IStudent } from '../models/student.model';
+import FileMakerService from './filemaker.service';
+import { IStudentFilemaker, StudentFileMakerResponse } from '../types/filemaker.types';
 
 interface MongoError extends Error {
     code?: number;
@@ -170,4 +173,95 @@ export class StudentService {
             { new: true }
         );
     }
+
+    /**
+   * 
+   * @param date 
+   * @param purge 
+   * @returns 
+   */
+  static async syncStudent(
+    date: string | null = null,
+    purge = false
+  ): Promise<{ totalRecords: number }> {
+    try {
+      const layoutName = "intg_student";
+      const query = [];
+      if (date) {
+        const formattedDate = moment(date, "MMDDYYYY").format("MM/DD/YYYY");
+        query.push({ ModificationTimestamp: `≥${formattedDate}` });
+      }
+      const client = new FileMakerService();
+      const responseCount: StudentFileMakerResponse = await client.find(layoutName, query, { limit: 1 });
+      console.log("responseCount: ", responseCount);
+      const totalRecords = responseCount?.dataInfo?.foundCount || 0;
+
+      // Start background processing
+      (async () => {
+        try {
+          const chunkSize = 2000;
+          const allStudents: IStudentFilemaker[] = [];
+
+          for (let offset = 1; offset <= totalRecords; offset += chunkSize) {
+            const result: StudentFileMakerResponse = await client.find(layoutName, query, {
+              offset,
+              limit: chunkSize,
+            });
+            allStudents.push(...result?.data || []);
+          }
+
+          console.log("Total students to sync: ", allStudents.length);
+          if (purge) {
+            await Student.deleteMany({});
+            console.log("Students collection purged");
+          }
+          const studentData = await Promise.all(
+            allStudents.map(async (student: IStudentFilemaker) => {
+              const studentDoc = new Student({
+                ID: student.fieldData.ID,
+                recordId: student.recordId,
+                id_parsch: student.fieldData.id_parsch,
+                name_first: student.fieldData.name_first,
+                name_last: student.fieldData.name_last,
+                score1: student.fieldData.score1,
+                score2: student.fieldData.score2,
+                GPA: student.fieldData.GPA,
+                grade_current: student.fieldData.grade_current,
+                flag_alg_complete: student.fieldData.flag_alg_complete,
+                CPSID: student.fieldData.CPSID,
+                name_full: student.fieldData.name_full,
+                attendance: student.fieldData.attendance,
+                GPA_waiver_flag: student.fieldData.GPA_waiver_flag,
+                attendance_waiver_flag: student.fieldData.attendance_waiver_flag,
+                act: student.fieldData.act,
+                sat_math: student.fieldData.sat_math,
+                sat_eng: student.fieldData.sat_eng,
+                alex: student.fieldData.alex,
+                rtw: student.fieldData.rtw,
+                mg_alg_school_elig: student.fieldData.mg_alg_school_elig,
+                mg_geo_school_elig: student.fieldData.mg_geo_school_elig,
+                mg_span_school_elig: student.fieldData.mg_span_school_elig,
+                mg_eng_school_elig: student.fieldData.mg_eng_school_elig,
+                CreationTimestamp: student.fieldData.CreationTimestamp,
+                CreatedBy: student.fieldData.CreatedBy,
+                ModificationTimestamp: student.fieldData.ModificationTimestamp,
+                ModifiedBy: student.fieldData.ModifiedBy,
+                ModifiedByWeb: student.fieldData.ModifiedByWeb,
+                flag_addWeb: student.fieldData.flag_addWeb
+              });
+              return await studentDoc.save();
+            })
+          );
+          console.log("Student synced: ", studentData.length);
+        } catch (error) {
+          console.error("Background sync error:", error);
+        }
+      })();
+
+      return { totalRecords };
+    } catch (error) {
+      console.error("Sync error:", error);
+      throw error;
+    }
+  }
 } 

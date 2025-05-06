@@ -128,4 +128,17 @@ export class StudentController {
             res.status(500).json(ResponseUtil.serverError(err.message));
         }
     }
+
+    /**
+     * Sync sections
+     */
+    static async syncStudent(req: Request, res: Response) {
+        const { date, purge } = req.body;
+        const result = await StudentService.syncStudent(date, purge);
+        res.json(ResponseUtil.success({
+            totalRecordsFound: result.totalRecords,
+            message: "Sections are being synced in background"
+        }));
+    }
+       
 } 

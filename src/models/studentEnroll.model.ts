@@ -52,8 +52,7 @@ const studentEnrollSchema = new Schema<IStudentEnroll>({
     },
     id_section: { 
         type: String, 
-        ref: 'Section',
-        required: true 
+        ref: 'Section'
     },
     id_student: { 
         type: String, 

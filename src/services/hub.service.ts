@@ -123,6 +123,12 @@ export class HubService {
     }).sort({ name: 1 });
   }
 
+  /**
+   * 
+   * @param date 
+   * @param purge 
+   * @returns 
+   */
   static async syncHubs(
     date: string | null = null,
     purge = false

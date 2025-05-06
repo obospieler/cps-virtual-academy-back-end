@@ -1,5 +1,8 @@
+import moment from 'moment-timezone';
 import { Section, ISection } from '../models/section.model';
 import { Types } from 'mongoose';
+import FileMakerService from './filemaker.service';
+import { ISectionFilemaker, SectionFileMakerResponse } from '../types/filemaker.types';
 
 interface MongoError extends Error {
     code?: number;
@@ -178,11 +181,11 @@ export class SectionService {
 
             const sectionDoc = section.toObject();
             return {
-                isFull: sectionDoc.enrolled_c >= sectionDoc.capacity_max,
-                isOverCapacity: sectionDoc.enrolled_c > sectionDoc.capacity_target,
-                remainingTarget: sectionDoc.capacity_remaining_target_c,
-                remainingMax: sectionDoc.capacity_remaining_max_c,
-                currentEnrollment: sectionDoc.enrolled_c,
+                isFull: (sectionDoc.enrolled_c ?? 0) >= (sectionDoc.capacity_max ?? 0),
+                isOverCapacity: (sectionDoc.enrolled_c ?? 0) > (sectionDoc.capacity_target ?? 0),
+                remainingTarget: sectionDoc.capacity_remaining_target_c ?? 0,
+                remainingMax: sectionDoc.capacity_remaining_max_c ?? 0,
+                currentEnrollment: sectionDoc.enrolled_c ?? 0,
                 targetCapacity: sectionDoc.capacity_target,
                 maxCapacity: sectionDoc.capacity_max,
                 hub: sectionDoc.hub
@@ -210,7 +213,7 @@ export class SectionService {
                 throw new Error('Section not found');
             }
 
-            const newEnrollment = section.enrolled_c + change;
+            const newEnrollment = (section.enrolled_c ?? 0) + change;
             if (newEnrollment < 0) {
                 throw new Error('Enrollment cannot be negative');
             }
@@ -232,4 +235,83 @@ export class SectionService {
             throw new Error(`Error updating enrollment: ${err.message}`);
         }
     }
+
+
+/**
+ * 
+ * @param date 
+ * @param purge 
+ * @returns 
+ */
+    static async syncSections(
+        date: string | null = null,
+        purge = false
+      ): Promise<{ totalRecords: number }> {
+        try {
+          const layoutName = "intg_section";
+          const query = [];
+          if (date) {
+            const formattedDate = moment(date, "MMDDYYYY").format("MM/DD/YYYY");
+            query.push({ ModificationTimestamp: `≥${formattedDate}` });
+          }
+          const client = new FileMakerService();
+          const responseCount: SectionFileMakerResponse = await client.find(layoutName, query, { limit: 1 });
+          console.log("responseCount: ", responseCount);
+          const totalRecords = responseCount?.dataInfo?.foundCount || 0;
+    
+          // Start background processing
+          (async () => {
+            try {
+              const chunkSize = 2000;
+              const allSections: ISectionFilemaker[] = [];
+    
+              for (let offset = 1; offset <= totalRecords; offset += chunkSize) {
+                const result: SectionFileMakerResponse = await client.find(layoutName, query, {
+                  offset,
+                  limit: chunkSize,
+                });
+                allSections.push(...result?.data || []);
+              }
+    
+              console.log("Total sections to sync: ", allSections.length);
+              if (purge) {
+                await Section.deleteMany({});
+                console.log("Sections collection purged");
+              }
+              const sectionData = await Promise.all(
+                allSections.map(async (section: ISectionFilemaker) => {
+                  const sectiionDoc = new Section({
+                    ID: section.fieldData.ID,
+                    CreationTimestamp: section.fieldData.CreationTimestamp,
+                    CreatedBy: section.fieldData.CreatedBy,
+                    ModificationTimestamp: section.fieldData.ModificationTimestamp,
+                    ModifiedBy: section.fieldData.ModifiedBy,
+                    id_hub: section.fieldData.id_hub,
+                    daysWeek: section.fieldData.daysWeek,
+                    time_start: section.fieldData.time_start,
+                    time_end: section.fieldData.time_end,
+                    capacity_target: section.fieldData.capacity_target,
+                    capacity_overPercent: section.fieldData.capacity_overPercent,
+                    capacity_max: section.fieldData.capacity_max,
+                    enrolled_c: section.fieldData.enrolled_c,
+                    capacity_remaining_target_c: section.fieldData.capacity_remaining_target_c,
+                    capacity_remaining_max_c: section.fieldData.capacity_remaining_max_c,
+                    ModifiedByWeb: section.fieldData.ModifiedByWeb,
+                    recordId: section.recordId
+                  });
+                  return await sectiionDoc.save();
+                })
+              );
+              console.log("Sections synced: ", sectionData.length);
+            } catch (error) {
+              console.error("Background sync error:", error);
+            }
+          })();
+    
+          return { totalRecords };
+        } catch (error) {
+          console.error("Sync error:", error);
+          throw error;
+        }
+      }
 }

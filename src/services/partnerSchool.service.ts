@@ -1,4 +1,7 @@
+import moment from 'moment-timezone';
 import { PartnerSchool, IPartnerSchool } from '../models/partnerSchool.model';
+import FileMakerService from './filemaker.service';
+import { IPartnerSchoolsFilemaker, PartnerSchoolsFileMakerResponse } from '../types/filemaker.types';
 
 interface MongoError extends Error {
     code?: number;
@@ -115,4 +118,75 @@ export class PartnerSchoolService {
     static async getPartnerSchoolsByEmailAuth(email: string): Promise<IPartnerSchool[]> {
         return await PartnerSchool.find({ xx_email_auth_user: email }).sort({ schoolName: 1 });
     }
+
+    
+    /**
+   * 
+   * @param date 
+   * @param purge 
+   * @returns 
+   */
+  static async syncPartnerSchools(
+    date: string | null = null,
+    purge = false
+  ): Promise<{ totalRecords: number }> {
+    try {
+      const layoutName = "intg_partnerSchool";
+      const query = [];
+      if (date) {
+        const formattedDate = moment(date, "MMDDYYYY").format("MM/DD/YYYY");
+        query.push({ ModificationTimestamp: `≥${formattedDate}` });
+      }
+      const client = new FileMakerService();
+      const responseCount: PartnerSchoolsFileMakerResponse = await client.find(layoutName, query, { limit: 1 });
+      console.log("responseCount: ", responseCount);
+      const totalRecords = responseCount?.dataInfo?.foundCount || 0;
+
+      // Start background processing
+      (async () => {
+        try {
+          const chunkSize = 2000;
+          const allPartnerSchools: IPartnerSchoolsFilemaker[] = [];
+
+          for (let offset = 1; offset <= totalRecords; offset += chunkSize) {
+            const result: PartnerSchoolsFileMakerResponse = await client.find(layoutName, query, {
+              offset,
+              limit: chunkSize,
+            });
+            allPartnerSchools.push(...result?.data || []);
+          }
+
+          console.log("Total partnerSchool to sync: ", allPartnerSchools.length);
+          if (purge) {
+            await PartnerSchool.deleteMany({});
+            console.log("PartnerSchool collection purged");
+          }
+          const PartnerSchoolData = await Promise.all(
+            allPartnerSchools.map(async (partnerSchools: IPartnerSchoolsFilemaker) => {
+              const partnerSchoolDoc = new PartnerSchool({
+                ID: partnerSchools.fieldData.ID,
+                recordId: partnerSchools.recordId,
+                xx_email_auth_user: partnerSchools.fieldData.xx_email_auth_user,
+                schoolName: partnerSchools.fieldData.schoolName,
+                CreationTimestamp: partnerSchools.fieldData.CreationTimestamp,
+                CreatedBy: partnerSchools.fieldData.CreatedBy,
+                ModificationTimestamp: partnerSchools.fieldData.ModificationTimestamp,
+                ModifiedBy: partnerSchools.fieldData.ModifiedBy,
+                ModifiedByWeb: partnerSchools.fieldData.ModifiedByWeb
+              });
+              return await partnerSchoolDoc.save();
+            })
+          );
+          console.log("partnerSchools synced: ", PartnerSchoolData.length);
+        } catch (error) {
+          console.error("Background sync error:", error);
+        }
+      })();
+
+      return { totalRecords };
+    } catch (error) {
+      console.error("Sync error:", error);
+      throw error;
+    }
+  }
 } 

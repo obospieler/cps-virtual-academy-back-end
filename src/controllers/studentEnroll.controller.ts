@@ -161,4 +161,16 @@ export class StudentEnrollController {
             res.status(500).json(ResponseUtil.serverError('Failed to search enrollments'));
         }
     }
+
+     /**
+     * Sync hubs
+     */
+     static async syncStudentEnrolled(req: Request, res: Response) {
+        const { date, purge } = req.body;
+        const result = await StudentEnrollService.syncStudentEnrolled(date, purge);
+        res.json(ResponseUtil.success({
+            totalRecordsFound: result.totalRecords,
+            message: "Hubs are being synced in background"
+        }));
+    }
 } 

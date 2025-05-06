@@ -112,4 +112,16 @@ export class PartnerSchoolController {
             res.status(500).json(ResponseUtil.serverError(err.message));
         }
     }
+
+    /**
+     * Sync partnerSchool
+     */
+    static async syncPartnerSchools(req: Request, res: Response) {
+        const { date, purge } = req.body;
+        const result = await PartnerSchoolService.syncPartnerSchools(date, purge);
+        res.json(ResponseUtil.success({
+            totalRecordsFound: result.totalRecords,
+            message: "Sections are being synced in background"
+        }));
+    }
 } 

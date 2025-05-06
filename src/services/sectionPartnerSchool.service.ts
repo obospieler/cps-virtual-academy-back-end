@@ -1,5 +1,8 @@
+import moment from 'moment-timezone';
 import { SectionPartnerSchool, ISectionPartnerSchool } from '../models/sectionPartnerSchool.model';
 import { Types } from 'mongoose';
+import FileMakerService from './filemaker.service';
+import { ISectionPartnerSchoolsFilemaker, SectionsPartnerSchoolsFileMakerResponse } from '../types/filemaker.types';
 
 interface MongoError extends Error {
     code?: number;
@@ -175,4 +178,78 @@ export class SectionPartnerSchoolService {
         ).populate('section')
          .populate('partnerSchool');
     }
+
+    /**
+   * 
+   * @param date 
+   * @param purge 
+   * @returns 
+   */
+  static async syncSectionPartnerSchools(
+    date: string | null = null,
+    purge = false
+  ): Promise<{ totalRecords: number }> {
+    try {
+      const layoutName = "intg_sectionPartnerSchool";
+      const query = [];
+      if (date) {
+        const formattedDate = moment(date, "MMDDYYYY").format("MM/DD/YYYY");
+        query.push({ ModificationTimestamp: `≥${formattedDate}` });
+      }
+      const client = new FileMakerService();
+      const responseCount: SectionsPartnerSchoolsFileMakerResponse = await client.find(layoutName, query, { limit: 1 });
+      console.log("responseCount: ", responseCount);
+      const totalRecords = responseCount?.dataInfo?.foundCount || 0;
+
+      // Start background processing
+      (async () => {
+        try {
+          const chunkSize = 2000;
+          const allSectionPartnerSchool: ISectionPartnerSchoolsFilemaker[] = [];
+
+          for (let offset = 1; offset <= totalRecords; offset += chunkSize) {
+            const result: SectionsPartnerSchoolsFileMakerResponse = await client.find(layoutName, query, {
+              offset,
+              limit: chunkSize,
+            });
+            allSectionPartnerSchool.push(...result?.data || []);
+          }
+
+          console.log("Total sectionPartnerSchool to sync: ", allSectionPartnerSchool.length);
+          if (purge) {
+            await SectionPartnerSchool.deleteMany({});
+            console.log("sectionpPartnerSchool collection purged");
+          }
+          const hubData = await Promise.all(
+            allSectionPartnerSchool.map(async (sectionPartnerSchool: ISectionPartnerSchoolsFilemaker) => {
+              const sectionPartnerSchoolDoc = new SectionPartnerSchool({
+                ID: sectionPartnerSchool.fieldData.ID,
+                recordId: sectionPartnerSchool.recordId,
+                CreationTimestamp: sectionPartnerSchool.fieldData.CreationTimestamp,
+                CreatedBy: sectionPartnerSchool.fieldData.CreatedBy,
+                ModificationTimestamp: sectionPartnerSchool.fieldData.ModificationTimestamp,
+                ModifiedBy: sectionPartnerSchool.fieldData.ModifiedBy,
+                id_section: sectionPartnerSchool.fieldData.id_section,
+                id_partnerSchool: sectionPartnerSchool.fieldData.id_partnerSchool,
+                numEnrolled_c: sectionPartnerSchool.fieldData.numEnrolled_c,
+                num_roster_c: sectionPartnerSchool.fieldData.num_roster_c,
+                flag_removeWeb: sectionPartnerSchool.fieldData.flag_removeWeb,
+                flag_addWeb: sectionPartnerSchool.fieldData.flag_addWeb,
+                ModifiedByWeb: sectionPartnerSchool.fieldData.ModifiedByWeb
+              });
+              return await sectionPartnerSchoolDoc.save();
+            })
+          );
+          console.log("sectionPartnerSchool synced: ", hubData.length);
+        } catch (error) {
+          console.error("Background sync error:", error);
+        }
+      })();
+
+      return { totalRecords };
+    } catch (error) {
+      console.error("Sync error:", error);
+      throw error;
+    }
+  }
 } 
