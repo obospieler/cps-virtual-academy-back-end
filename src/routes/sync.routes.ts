@@ -1,9 +1,8 @@
-import { Router, Request, Response } from 'express';
-import { HubSyncController } from '../controllers/syncHub.controller';
-import { SectionSyncController } from '../controllers/syncSection.controller';
-import { PartnerSchoolSyncController } from '../controllers/syncPartnerSchool.controller';
-import { SectionPartnerSchoolSyncController } from '../controllers/syncSectionPartnerSchool.controller';
-import { ResponseUtil } from '../utils/response.util';
+import { Router, Request, Response, RequestHandler } from 'express';
+import { HubController } from '../controllers/hub.controller';
+import { SectionController } from '../controllers/section.controller';
+import { PartnerSchoolController } from '../controllers/partnerSchool.controller';
+import { SectionPartnerSchoolController } from '../controllers/sectionPartnerSchool.controller';
 
 /**
  * @swagger
@@ -39,7 +38,7 @@ import { ResponseUtil } from '../utils/response.util';
  *               example: 150
  *         message:
  *           type: string
- *           example: Syncing records in background: 150
+ *           example: "Syncing records in background: 150"
  */
 
 const router = Router();
@@ -69,9 +68,7 @@ const router = Router();
  *       500:
  *         description: Server error
  */
-router.post('/hubs', async (req: Request, res: Response) => {
-  await HubSyncController.syncHubs(req, res);
-});
+router.post('/hubs', HubController.syncHubs as RequestHandler);
 
 /**
  * @swagger
@@ -98,9 +95,7 @@ router.post('/hubs', async (req: Request, res: Response) => {
  *       500:
  *         description: Server error
  */
-router.post('/sections', async (req: Request, res: Response) => {
-  await SectionSyncController.syncSections(req, res);
-});
+// router.post('/sections', SectionController.syncSections as unknown as RequestHandler);
 
 /**
  * @swagger
@@ -127,9 +122,7 @@ router.post('/sections', async (req: Request, res: Response) => {
  *       500:
  *         description: Server error
  */
-router.post('/partner-schools', async (req: Request, res: Response) => {
-  await PartnerSchoolSyncController.syncPartnerSchools(req, res);
-});
+// router.post('/partner-schools', PartnerSchoolController.syncPartnerSchools as unknown as RequestHandler);
 
 /**
  * @swagger
@@ -156,8 +149,7 @@ router.post('/partner-schools', async (req: Request, res: Response) => {
  *       500:
  *         description: Server error
  */
-router.post('/section-partner-schools', async (req: Request, res: Response) => {
-  await SectionPartnerSchoolSyncController.syncSectionPartnerSchools(req, res);
-});
+// router.post('/section-partner-schools', SectionPartnerSchoolController.syncSectionPartnerSchools as unknown as RequestHandler);
 
 export default router;
+

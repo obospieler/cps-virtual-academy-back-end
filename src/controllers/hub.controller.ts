@@ -125,4 +125,16 @@ export class HubController {
             res.status(500).json(ResponseUtil.serverError(err.message));
         }
     }
+
+    /**
+     * Sync hubs
+     */
+    static async syncHubs(req: Request, res: Response) {
+        const { date, purge } = req.body;
+        const result = await HubService.syncHubs(date, purge);
+        res.json(ResponseUtil.success({
+            totalRecordsFound: result.totalRecords,
+            message: "Hubs are being synced in background"
+        }));
+    }
 } 
