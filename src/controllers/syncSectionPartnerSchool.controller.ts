@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 import moment from 'moment';
 import { ResponseUtil } from '../utils/response.util';
-import { Hub } from '../models/hub.model';
+import { SectionPartnerSchool } from '../models/sectionPartnerSchool.model';
 import FileMakerService from '../services/filemaker.service';
 
 function processFileMakerRecord(record: any) {
@@ -42,26 +42,26 @@ async function fetchAllRecords(client: any, layoutName: string, totalCount: numb
   return allRecords;
 }
 
-export class HubSyncController {
-  static async syncHubs(req: Request, res: Response) {
+export class SectionPartnerSchoolSyncController {
+  static async syncSectionPartnerSchools(req: Request, res: Response) {
     try {
       const date = req.body.date || null;
       const purge = req.body.purge || false;
-      const totalCount = await HubSyncController.doHubSync(date, purge);
+      const totalCount = await SectionPartnerSchoolSyncController.doSectionPartnerSchoolSync(date, purge);
       return res.json(ResponseUtil.success(
         { total_count: totalCount },
-        `Syncing hubs in background: ${totalCount}`
+        `Syncing section-partner school relationships in background: ${totalCount}`
       ));
     } catch (error: any) {
-      console.error('Error in syncHubs:', error);
+      console.error('Error in syncSectionPartnerSchools:', error);
       return res.status(500).json(ResponseUtil.serverError(error.message));
     }
   }
 
-  static async doHubSync(date: string | null = null, purge = false): Promise<number> {
+  static async doSectionPartnerSchoolSync(date: string | null = null, purge = false): Promise<number> {
     const client = new FileMakerService();
     console.log('Initializing FileMaker client');
-    const layoutName = 'intg_hub';
+    const layoutName = 'sectionPartnerSchool';
     const query: any[] = [];
 
     if (date) {
@@ -75,7 +75,6 @@ export class HubSyncController {
       // First verify if the layout exists
       console.log(`Verifying layout '${layoutName}' exists...`);
       const layouts = await client.layouts();
-      console.log(layouts, "layouts100");
       const availableLayouts = layouts?.layouts || [];
       const allLayoutNames: string[] = availableLayouts.flatMap((layout: any) =>
         Array.isArray(layout.folderLayoutNames) ? layout.folderLayoutNames : []
@@ -92,18 +91,18 @@ export class HubSyncController {
       console.log(`Layout '${layoutName}' verified, proceeding with record count...`);
       const totalCount = await getRecordCount(client, layoutName, query);
       if (!totalCount) {
-        console.log('No hubs to sync from FileMaker');
+        console.log('No section-partner school relationships to sync from FileMaker');
         await client.destroy();
         return 0;
       }
 
-      console.log(`${moment().format('MM/DD/YYYY hh:mm A')} - Found ${totalCount} hub records to sync`);
-      await HubSyncController.fetchAndUpdateHubs(client, layoutName, purge, totalCount, query);
+      console.log(`${moment().format('MM/DD/YYYY hh:mm A')} - Found ${totalCount} section-partner school relationship records to sync`);
+      await SectionPartnerSchoolSyncController.fetchAndUpdateSectionPartnerSchools(client, layoutName, purge, totalCount, query);
       await client.destroy();
       return totalCount;
     } catch (error: any) {
       await client.destroy();
-      console.error('Error in doHubSync:', error.message);
+      console.error('Error in doSectionPartnerSchoolSync:', error.message);
       if (error.response?.data?.messages) {
         console.error('FileMaker API Error Details:', JSON.stringify(error.response.data.messages, null, 2));
       }
@@ -111,34 +110,34 @@ export class HubSyncController {
     }
   }
 
-  static async fetchAndUpdateHubs(client: any, layoutName: string, purge: boolean, totalCount: number, query: any[] = []) {
+  static async fetchAndUpdateSectionPartnerSchools(client: any, layoutName: string, purge: boolean, totalCount: number, query: any[] = []) {
     try {
-      const allHubs = await fetchAllRecords(client, layoutName, totalCount, query);
-      console.log(`${moment().format('MM/DD/YYYY hh:mm A')} - Retrieved ${allHubs.length} hub records`);
+      const allRelationships = await fetchAllRecords(client, layoutName, totalCount, query);
+      console.log(`${moment().format('MM/DD/YYYY hh:mm A')} - Retrieved ${allRelationships.length} section-partner school relationship records`);
 
       if (purge) {
-        await Hub.deleteMany({});
+        await SectionPartnerSchool.deleteMany({});
         const BATCH_SIZE = 1000;
-        for (let i = 0; i < allHubs.length; i += BATCH_SIZE) {
-          await Hub.insertMany(allHubs.slice(i, i + BATCH_SIZE));
+        for (let i = 0; i < allRelationships.length; i += BATCH_SIZE) {
+          await SectionPartnerSchool.insertMany(allRelationships.slice(i, i + BATCH_SIZE));
         }
       } else {
-        if (allHubs.length > 0) {
-          const bulkOps = allHubs.map(doc => ({
+        if (allRelationships.length > 0) {
+          const bulkOps = allRelationships.map(doc => ({
             updateOne: {
               filter: { fileMakerRecordId: doc.fileMakerRecordId },
               update: { $set: doc },
               upsert: true
             }
           }));
-          await Hub.bulkWrite(bulkOps);
+          await SectionPartnerSchool.bulkWrite(bulkOps);
         }
       }
 
-      console.log('Hub sync complete');
+      console.log('Section-partner school relationship sync complete');
     } catch (error: any) {
-      console.error('Error syncing hubs:', error.message);
+      console.error('Error syncing section-partner school relationships:', error.message);
       throw error;
     }
   }
-}
+} 
