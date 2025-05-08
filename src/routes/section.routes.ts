@@ -340,4 +340,58 @@ router.get('/:id/capacity', SectionController.checkSectionCapacity as RequestHan
  */
 router.patch('/:id/enrollment', SectionController.updateEnrollment as RequestHandler);
 
+/**
+ * @swagger
+ * /sections/partner-school/{partnerSchoolId}:
+ *   get:
+ *     summary: Get all sections for a partner school with hub information
+ *     tags: [Sections]
+ *     parameters:
+ *       - in: path
+ *         name: partnerSchoolId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Partner School ID
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *         description: Page number for pagination
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 10
+ *         description: Number of items per page
+ *       - in: query
+ *         name: search
+ *         schema:
+ *           type: string
+ *         description: Search term to filter sections
+ *     responses:
+ *       200:
+ *         description: List of sections for the partner school with hub information
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 sections:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/Section'
+ *                 totalCount:
+ *                   type: integer
+ *                   description: Total number of sections
+ *                 totalPages:
+ *                   type: integer
+ *                   description: Total number of pages
+ *                 currentPage:
+ *                   type: integer
+ *                   description: Current page number
+ */
+router.get('/partner-school/:partnerSchoolId', SectionController.getSectionsByPartnerSchool as RequestHandler);
+
 export default router; 

@@ -121,12 +121,29 @@ export class StudentEnrollController {
     }
 
     /**
-     * Get enrollments by section ID
+     * Get enrollments by section ID with pagination and search
      */
     static async getEnrollmentsBySection(req: Request, res: Response): Promise<void> {
         try {
-            const enrollments = await StudentEnrollService.getEnrollmentsBySection(req.params.sectionId);
-            res.status(200).json(ResponseUtil.success(enrollments));
+            const sectionId = req.params.sectionId;
+            const page = parseInt(req.query.page as string) || 1;
+            const limit = parseInt(req.query.limit as string) || 10;
+            const searchQuery = req.query.search as string | undefined;
+
+            const { enrollments, total } = await StudentEnrollService.getEnrollmentsBySection(
+                sectionId,
+                page,
+                limit,
+                searchQuery
+            );
+
+            res.status(200).json(ResponseUtil.success({
+                enrollments,
+                total,
+                page,
+                limit,
+                totalPages: Math.ceil(total / limit)
+            }));
         } catch (error) {
             res.status(500).json(ResponseUtil.serverError('Failed to fetch enrollments by section'));
         }
@@ -173,4 +190,94 @@ export class StudentEnrollController {
             message: "Hubs are being synced in background"
         }));
     }
+
+    /**
+ * Add a student with temporary information
+ */
+static async addStudent(req: Request, res: Response): Promise<void> {
+    try {
+        const {
+            id_hub,
+            id_partnerSchool,
+            id_section,
+            temp_firstName,
+            temp_lastName,
+            temp_CPSID
+        } = req.body;
+        
+        // Validate required fields
+        if (!id_hub || !id_partnerSchool || !id_section || !temp_firstName || !temp_lastName) {
+            res.status(400).json(ResponseUtil.error('Missing required fields', 400));
+            return;
+        }
+        
+        const enrollment = await StudentEnrollService.addStudent({
+            id_hub,
+            id_partnerSchool,
+            id_section,
+            temp_firstName,
+            temp_lastName,
+            temp_CPSID
+        });
+        
+        res.status(201).json(ResponseUtil.success(
+            enrollment, 
+            'Student addition request submitted successfully', 
+            201
+        ));
+    } catch (error) {
+        console.error('Error in addStudent controller:', error);
+        res.status(500).json(ResponseUtil.serverError('Failed to add student'));
+    }
+}
+
+/**
+ * Remove a student from enrollment
+ */
+static async removeStudent(req: Request, res: Response): Promise<void> {
+    try {
+        const {
+            id_hub,
+            id_section,
+            id_student,
+            id_partnerSchool,
+            removeReason,
+            removeOther,
+            removeText
+        } = req.body;
+        
+        // Validate required fields
+        if (!id_hub || !id_section || !id_student || !id_partnerSchool) {
+            res.status(400).json(ResponseUtil.error('Missing required fields', 400));
+            return;
+        }
+        
+        const enrollment = await StudentEnrollService.removeStudent({
+            id_hub,
+            id_section,
+            id_student,
+            id_partnerSchool,
+            removeReason,
+            removeOther,
+            removeText
+        });
+        
+        if (!enrollment) {
+            res.status(404).json(ResponseUtil.notFound('Student enrollment not found'));
+            return;
+        }
+        
+        res.status(200).json(ResponseUtil.success(
+            enrollment, 
+            'Student removal request submitted successfully'
+        ));
+    } catch (error) {
+        console.error('Error in removeStudent controller:', error);
+        if (error instanceof Error && error.message.includes('not found')) {
+            res.status(404).json(ResponseUtil.notFound(error.message));
+        } else {
+            res.status(500).json(ResponseUtil.serverError('Failed to process student removal'));
+        }
+    }
+}
 } 

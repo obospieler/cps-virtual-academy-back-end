@@ -133,17 +133,45 @@ export class StudentEnrollService {
     }
 
     /**
-     * Get enrollments by section ID
+     * Get enrollments by section ID with pagination and search
      * @param sectionId The section ID to filter by
-     * @returns Array of enrollments matching the section ID
+     * @param page Page number for pagination (default: 1)
+     * @param limit Number of items per page (default: 10)
+     * @param searchQuery Optional search query to filter results
+     * @returns Object containing enrollments array and total count
      */
-    static async getEnrollmentsBySection(sectionId: string): Promise<IStudentEnroll[]> {
-        return await StudentEnroll.find({ id_section: sectionId })
-            .populate('hub')
-            .populate('partnerSchool')
-            .populate('section')
-            .populate('student')
-            .sort({ CreationTimestamp: -1 });
+    static async getEnrollmentsBySection(
+        sectionId: string,
+        page: number = 1,
+        limit: number = 10,
+        searchQuery?: string
+    ): Promise<{ enrollments: IStudentEnroll[]; total: number }> {
+        const skip = (page - 1) * limit;
+        const query: any = { id_section: sectionId };
+
+        if (searchQuery) {
+            query.$or = [
+                { status_roster: { $regex: searchQuery, $options: 'i' } },
+                { removeReason: { $regex: searchQuery, $options: 'i' } },
+                { temp_firstName: { $regex: searchQuery, $options: 'i' } },
+                { temp_lastName: { $regex: searchQuery, $options: 'i' } },
+                { temp_CPSID: { $regex: searchQuery, $options: 'i' } }
+            ];
+        }
+
+        const [enrollments, total] = await Promise.all([
+            StudentEnroll.find(query)
+                .sort({ CreationTimestamp: -1 })
+                .skip(skip)
+                .limit(limit)
+                .populate('hub')
+                .populate('partnerSchool')
+                .populate('section')
+                .populate('student'),
+            StudentEnroll.countDocuments(query)
+        ]);
+
+        return { enrollments, total };
     }
 
     /**
@@ -266,4 +294,124 @@ export class StudentEnrollService {
       throw error;
     }
   }
+
+  /**
+ * Add a new student to a section with temporary information
+ * @param addData Object containing student and section information
+ * @returns The created enrollment record
+ */
+static async addStudent(addData: {
+  id_hub: string;
+  id_partnerSchool: string;
+  id_section: string;
+  temp_firstName: string;
+  temp_lastName: string;
+  temp_CPSID?: string;
+}): Promise<IStudentEnroll> {
+  try {
+      const {
+          id_hub,
+          id_partnerSchool,
+          id_section,
+          temp_firstName,
+          temp_lastName,
+          temp_CPSID = ''
+      } = addData;
+
+      // Generate a temporary ID for the enrollment
+      const tempId = `TEMP_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
+      
+      // Create timestamp in the format used by the system
+      const timestamp = moment().format('MM/DD/YYYY HH:mm:ss');
+      
+      // Generate a modified by web email (similar to the old code's generateTempEmail function)
+      const modifiedByWeb = `webuser_${Date.now()}@example.com`;
+      
+      // Create and save the enrollment record
+      const enrollmentData: Partial<IStudentEnroll> = {
+          ID: tempId,
+          CreationTimestamp: timestamp,
+          CreatedBy: modifiedByWeb,
+          ModificationTimestamp: timestamp,
+          ModifiedBy: modifiedByWeb,
+          id_hub,
+          id_partnerSchool,
+          id_section,
+          id_student: tempId, // Temporary ID until real student record is created
+          status_roster: 'Pending Addition',
+          flag_addWeb: '1',
+          temp_firstName,
+          temp_lastName,
+          temp_CPSID,
+          ModifiedByWeb: modifiedByWeb
+      };
+      
+      return await this.createEnrollment(enrollmentData);
+  } catch (error) {
+      console.error('Error in addStudent service:', error);
+      throw error;
+  }
+}
+
+/**
+* Mark a student as removed from a section
+* @param removeData Object containing removal information
+* @returns The updated enrollment record
+*/
+static async removeStudent(removeData: {
+  id_hub: string;
+  id_section: string;
+  id_student: string;
+  id_partnerSchool: string;
+  removeReason: string;
+  removeOther?: string;
+  removeText?: string;
+}): Promise<IStudentEnroll | null> {
+  try {
+      const {
+          id_hub,
+          id_section,
+          id_student,
+          id_partnerSchool,
+          removeReason,
+          removeOther = '',
+          removeText = ''
+      } = removeData;
+      
+      // Find the enrollment record
+      const enrollment = await StudentEnroll.findOne({
+          id_hub,
+          id_section,
+          id_student,
+          id_partnerSchool
+      });
+      
+      if (!enrollment) {
+          throw new Error('Student enrollment not found');
+      }
+      
+      // Generate a modified by web email
+      const modifiedByWeb = `webuser_${Date.now()}@example.com`;
+      
+      // Create timestamp in the format used by the system
+      const timestamp = moment().format('MM/DD/YYYY HH:mm:ss');
+      
+      // Update the enrollment record
+      const updateData: Partial<IStudentEnroll> = {
+          status_roster: 'Pending Removal',
+          removeReason,
+          removeReason_other: removeOther,
+          removeReason_additionalContext: removeText,
+          flag_removeWeb: '1',
+          ModifiedBy: modifiedByWeb,
+          ModifiedByWeb: modifiedByWeb,
+          ModificationTimestamp: timestamp
+      };
+      
+      return await this.updateEnrollment(enrollment.ID, updateData);
+  } catch (error) {
+      console.error('Error in removeStudent service:', error);
+      throw error;
+  }
+}
 } 

@@ -3,6 +3,8 @@ import { Section, ISection } from '../models/section.model';
 import { Types } from 'mongoose';
 import FileMakerService from './filemaker.service';
 import { ISectionFilemaker, SectionFileMakerResponse } from '../types/filemaker.types';
+import { SectionPartnerSchool } from '../models/sectionPartnerSchool.model';
+import { populate } from 'dotenv';
 
 interface MongoError extends Error {
     code?: number;
@@ -236,13 +238,79 @@ export class SectionService {
         }
     }
 
+    /**
+     * Get sections by partner school ID with hub information and pagination
+     * @param partnerSchoolId The partner school ID
+     * @param page Current page number (default: 1)
+     * @param limit Number of items per page (default: 10)
+     * @param search Optional search term to filter sections
+     * @returns Object with sections array and pagination metadata
+     */
+    static async getSectionsByPartnerSchool(
+        partnerSchoolId: string, 
+        page: number = 1, 
+        limit: number = 10,
+        search?: string
+    ): Promise<{ sections: ISection[], totalCount: number, totalPages: number, currentPage: number }> {
+        try {
+            // Ensure page and limit are valid numbers
+            page = Math.max(1, page);
+            limit = Math.max(1, Math.min(100, limit)); // Cap at 100 items per page
+            const skip = (page - 1) * limit;
 
-/**
- * 
- * @param date 
- * @param purge 
- * @returns 
- */
+            // Build search query for sections
+            const sectionSearchQuery = search ? {
+                $or: [
+                    { ID: { $regex: search, $options: 'i' } },
+                    { daysWeek: { $regex: search, $options: 'i' } },
+                    { time_start: { $regex: search, $options: 'i' } },
+                    { time_end: { $regex: search, $options: 'i' } },
+                ]
+            } : {};
+
+            // Get the section-partner school relationships with pagination
+            const relationships = await SectionPartnerSchool.find({ 
+                id_partnerSchool: partnerSchoolId 
+            }, { id_section: 1 })
+            .skip(skip)
+            .limit(limit);
+
+            // Get section IDs from relationships
+            const sectionIds = relationships.map(rel => rel.id_section);
+
+            // Fetch sections using the IDs and apply search filter
+            const sections = await Section.find({ 
+                ID: { $in: sectionIds },
+                ...sectionSearchQuery
+            }).populate('hub');
+
+            // Get total count for pagination with search filter
+            const totalCount = await Section.countDocuments({
+                ID: { $in: sectionIds },
+                ...sectionSearchQuery
+            });
+            
+            // Calculate total pages
+            const totalPages = Math.ceil(totalCount / limit);
+
+            return {
+                sections,
+                totalCount,
+                totalPages,
+                currentPage: page
+            };
+        } catch (error) {
+            const err = error as Error;
+            throw new Error(`Error fetching sections by partner school: ${err.message}`);
+        }
+    }
+
+    /**
+     * 
+     * @param date 
+     * @param purge 
+     * @returns 
+     */
     static async syncSections(
         date: string | null = null,
         purge = false

@@ -95,7 +95,9 @@ const sectionSchema = new Schema<ISection>({
     }
 }, {
     timestamps: true,
-    versionKey: false
+    versionKey: false,
+    toJSON: { virtuals: true },
+    toObject: { virtuals: true }
 });
 
 // Set up the virtual populate with the name "Hub" (capital H)

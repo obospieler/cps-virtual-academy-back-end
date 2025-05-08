@@ -68,7 +68,9 @@ const studentSchema = new Schema<IStudent>({
     flag_addWeb: { type: String, default: '' }
 }, {    
     timestamps: false,
-    versionKey: false
+    versionKey: false,
+    toJSON: { virtuals: true },
+    toObject: { virtuals: true }
 });
 
 studentSchema.index({ ID: 1 }, { unique: true });

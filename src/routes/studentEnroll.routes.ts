@@ -388,7 +388,7 @@ router.get('/partner-school/:partnerSchoolId', StudentEnrollController.getEnroll
  * @swagger
  * /student-enrollments/section/{sectionId}:
  *   get:
- *     summary: Get enrollments by section ID
+ *     summary: Get enrollments by section ID with pagination and search
  *     tags: [StudentEnrollments]
  *     parameters:
  *       - in: path
@@ -397,6 +397,23 @@ router.get('/partner-school/:partnerSchoolId', StudentEnrollController.getEnroll
  *         schema:
  *           type: string
  *         description: Section ID
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *         description: Page number
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 10
+ *         description: Number of items per page
+ *       - in: query
+ *         name: search
+ *         schema:
+ *           type: string
+ *         description: Search query to filter results
  *     responses:
  *       200:
  *         description: List of enrollments for the section
@@ -412,12 +429,29 @@ router.get('/partner-school/:partnerSchoolId', StudentEnrollController.getEnroll
  *                   type: number
  *                   example: 200
  *                 data:
- *                   type: array
- *                   items:
- *                     $ref: '#/components/schemas/StudentEnroll'
+ *                   type: object
+ *                   properties:
+ *                     enrollments:
+ *                       type: array
+ *                       items:
+ *                         $ref: '#/components/schemas/StudentEnroll'
+ *                     total:
+ *                       type: number
+ *                       description: Total number of enrollments
+ *                     page:
+ *                       type: number
+ *                       description: Current page number
+ *                     limit:
+ *                       type: number
+ *                       description: Number of items per page
+ *                     totalPages:
+ *                       type: number
+ *                       description: Total number of pages
  *                 message:
  *                   type: string
  *                   example: Operation successful
+ *       500:
+ *         description: Server error
  */
 router.get('/section/:sectionId', StudentEnrollController.getEnrollmentsBySection as RequestHandler);
 
@@ -496,5 +530,136 @@ router.get('/student/:studentId', StudentEnrollController.getEnrollmentsByStuden
  *         description: Search query is required
  */
 router.get('/search', StudentEnrollController.searchEnrollments as RequestHandler);
+
+/**
+ * @swagger
+ * /student-enrollments/add-student:
+ *   post:
+ *     summary: Add a student with temporary information
+ *     tags: [StudentEnrollments]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - id_hub
+ *               - id_partnerSchool
+ *               - id_section
+ *               - temp_firstName
+ *               - temp_lastName
+ *             properties:
+ *               id_hub:
+ *                 type: string
+ *                 description: Hub ID
+ *               id_partnerSchool:
+ *                 type: string
+ *                 description: Partner school ID
+ *               id_section:
+ *                 type: string
+ *                 description: Section ID
+ *               temp_firstName:
+ *                 type: string
+ *                 description: Student's first name
+ *               temp_lastName:
+ *                 type: string
+ *                 description: Student's last name
+ *               temp_CPSID:
+ *                 type: string
+ *                 description: Student's CPS ID (optional)
+ *     responses:
+ *       201:
+ *         description: Student addition request submitted successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: success
+ *                 code:
+ *                   type: number
+ *                   example: 201
+ *                 data:
+ *                   $ref: '#/components/schemas/StudentEnroll'
+ *                 message:
+ *                   type: string
+ *                   example: Student addition request submitted successfully
+ *       400:
+ *         description: Missing required fields
+ *       500:
+ *         description: Server error
+ */
+router.post('/add-student', StudentEnrollController.addStudent as RequestHandler);
+
+/**
+ * @swagger
+ * /student-enrollments/remove-student:
+ *   post:
+ *     summary: Request to remove a student from enrollment
+ *     tags: [StudentEnrollments]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - id_hub
+ *               - id_section
+ *               - id_student
+ *               - id_partnerSchool
+ *               - removeReason
+ *             properties:
+ *               id_hub:
+ *                 type: string
+ *                 description: Hub ID
+ *               id_section:
+ *                 type: string
+ *                 description: Section ID
+ *               id_student:
+ *                 type: string
+ *                 description: Student ID
+ *               id_partnerSchool:
+ *                 type: string
+ *                 description: Partner school ID
+ *               removeReason:
+ *                 type: string
+ *                 description: Reason for removal
+ *               removeOther:
+ *                 type: string
+ *                 description: Other removal reason if applicable
+ *               removeText:
+ *                 type: string
+ *                 description: Additional context for removal
+ *     responses:
+ *       200:
+ *         description: Student removal request submitted successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: success
+ *                 code:
+ *                   type: number
+ *                   example: 200
+ *                 data:
+ *                   $ref: '#/components/schemas/StudentEnroll'
+ *                 message:
+ *                   type: string
+ *                   example: Student removal request submitted successfully
+ *       400:
+ *         description: Missing required fields
+ *       404:
+ *         description: Student enrollment not found
+ *       500:
+ *         description: Server error
+ */
+router.post('/remove-student', StudentEnrollController.removeStudent as RequestHandler);
 
 export default router; 

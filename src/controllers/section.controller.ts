@@ -156,4 +156,27 @@ export class SectionController {
             message: "Sections are being synced in background"
         }));
     }
+
+    /**
+     * Get sections by partner school ID
+     */
+    static async getSectionsByPartnerSchool(req: Request, res: Response) {
+        try {
+            const partnerSchoolId = req.params.partnerSchoolId;
+            const page = parseInt(req.query.page as string) || 1;
+            const limit = parseInt(req.query.limit as string) || 10;
+            const search = req.query.search as string;
+
+            const result = await SectionService.getSectionsByPartnerSchool(
+                partnerSchoolId,
+                page,
+                limit,
+                search
+            );
+            res.json(ResponseUtil.success(result));
+        } catch (error) {
+            const err = error as Error;
+            res.status(500).json(ResponseUtil.serverError(err.message));
+        }
+    }
 } 
