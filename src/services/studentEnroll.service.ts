@@ -7,6 +7,7 @@ import { IHub } from '../models/hub.model';
 import { IPartnerSchool } from '../models/partnerSchool.model';
 import { ISection } from '../models/section.model';
 import { SectionService } from './section.service';
+import { IWebRequest, WebRequest } from '../models/webRequests.model';
 
 interface MongoError extends Error {
     code?: number;
@@ -317,9 +318,6 @@ static async addStudent(addData: {
           temp_lastName,
           temp_CPSID = ''
       } = addData;
-
-      // Generate a temporary ID for the enrollment
-      const tempId = `TEMP_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
       
       // Create timestamp in the format used by the system
       const timestamp = moment().format('MM/DD/YYYY HH:mm:ss');
@@ -329,7 +327,6 @@ static async addStudent(addData: {
       
       // Create and save the enrollment record
       const enrollmentData: Partial<IStudentEnroll> = {
-          ID: tempId,
           CreationTimestamp: timestamp,
           CreatedBy: modifiedByWeb,
           ModificationTimestamp: timestamp,
@@ -337,16 +334,43 @@ static async addStudent(addData: {
           id_hub,
           id_partnerSchool,
           id_section,
-          id_student: tempId, // Temporary ID until real student record is created
           status_roster: 'Pending Addition',
           flag_addWeb: '1',
+          flag_removeWeb: '',
+          flag_moveWeb: '',
           temp_firstName,
           temp_lastName,
           temp_CPSID,
           ModifiedByWeb: modifiedByWeb
       };
       
-      return await this.createEnrollment(enrollmentData);
+       // Create enrollment record
+       const enrollment = await this.createEnrollment(enrollmentData);
+        // Create web request record
+      const webRequestData: Partial<IWebRequest> = {
+        id_hub,
+        id_school: id_partnerSchool,
+        id_section,
+        nameFirst: temp_firstName,
+        nameLast: temp_lastName,
+        id_CPS: temp_CPSID || '',
+        requestType: 'addStudent',
+        json: JSON.stringify({
+          id_hub,
+          id_school: id_partnerSchool,
+          id_section,
+          nameFirst: temp_firstName,
+          nameLast: temp_lastName,
+          id_CPS: temp_CPSID || '',
+          requestType: 'addStudent'
+        }),
+        ModifiedByWeb: modifiedByWeb,
+      };
+      console.log(webRequestData, "webRequestData")
+      const webRequest = new WebRequest(webRequestData);
+      await webRequest.save();
+      
+      return enrollment;
   } catch (error) {
       console.error('Error in addStudent service:', error);
       throw error;
@@ -403,6 +427,8 @@ static async removeStudent(removeData: {
           removeReason_other: removeOther,
           removeReason_additionalContext: removeText,
           flag_removeWeb: '1',
+          flag_addWeb: "",
+          flag_moveWeb: "",
           ModifiedBy: modifiedByWeb,
           ModifiedByWeb: modifiedByWeb,
           ModificationTimestamp: timestamp

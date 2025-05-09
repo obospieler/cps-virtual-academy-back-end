@@ -262,11 +262,6 @@ static async removeStudent(req: Request, res: Response): Promise<void> {
             removeText
         });
         
-        if (!enrollment) {
-            res.status(404).json(ResponseUtil.notFound('Student enrollment not found'));
-            return;
-        }
-        
         res.status(200).json(ResponseUtil.success(
             enrollment, 
             'Student removal request submitted successfully'
