@@ -35,7 +35,7 @@ export interface IStudentEnroll extends Document {
 }
 
 const studentEnrollSchema = new Schema<IStudentEnroll>({
-    ID: { type: String, required: true},
+    ID: { type: String},
     CreationTimestamp: { type: String, required: true },
     CreatedBy: { type: String, required: true },
     ModificationTimestamp: { type: String, required: true },
@@ -57,7 +57,6 @@ const studentEnrollSchema = new Schema<IStudentEnroll>({
     id_student: { 
         type: String, 
         ref: 'Student',
-        required: true 
     },
     status_roster: { type: String, default: 'Not Enrolled' },
     removeReason: { type: String, default: '' },
